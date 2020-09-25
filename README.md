@@ -10,4 +10,4 @@ Can be found under rest_persons_dto in both branches.
 
 Rest part 3: all done except exercise 5
 
-Can be found under rest_persons_dot in the "part3" branch
+Can be found under rest_persons_dto in the "part3" branch
