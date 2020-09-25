@@ -1,6 +1,7 @@
 package rest;
 
 import dto.PersonDTO;
+import entities.Address;
 import entities.Person;
 import exceptions.PersonNotFoundException;
 import io.restassured.RestAssured;
@@ -80,9 +81,14 @@ public class PersonResourceTest {
         p1 = new Person("Per", "Larsen", "46765647");
         p2 = new Person("Kurt", "Hansen", "76847462");
         p3 = new Person("Gurli", "Svendsen", "76856412");
+        p1.setAddress(new Address("Hovedgaden 3", 1230, "Herlev"));
+        p2.setAddress(new Address("Bygade 56", 4560, "Værløse"));
+        p3.setAddress(new Address("Jernbanegade 6", 7890, "Skovlunde"));
+        
         try {
             em.getTransaction().begin();
             em.createNamedQuery("Person.deleteAllRows").executeUpdate();
+            em.createNamedQuery("Address.deleteAllRows").executeUpdate();
             em.persist(p1);
             em.persist(p2);
             em.persist(p3);
@@ -139,9 +145,11 @@ public class PersonResourceTest {
                 .get("/person/" + p2.getId()).then()
                 .assertThat()
                 .statusCode(HttpStatus.OK_200.getStatusCode())
-                .body("fName", equalTo(p2.getFirstName()));
+                .body("fName", equalTo(p2.getFirstName()))
+                .body("lName", equalTo(p2.getLastName()))
+                .body("phone", equalTo(p2.getPhone()));
     }
-    
+
     @Test
     public void testGetPersonException() {
         given()
@@ -156,21 +164,24 @@ public class PersonResourceTest {
     public void testAddPerson() throws Exception {
         given()
                 .contentType("application/json")
-                .body(new PersonDTO("Klaus", "Guttermand", "75634251"))
+                .body(new PersonDTO("Klaus", "Guttermand", "75634251", "Landevejen 19", 8765, "Roskilde"))
                 .when()
                 .post("person")
                 .then()
                 .body("fName", equalTo("Klaus"))
                 .body("lName", equalTo("Guttermand"))
                 .body("phone", equalTo("75634251"))
+                .body("street", equalTo("Landevejen 19"))
+                .body("zip", equalTo(8765))
+                .body("city", equalTo("Roskilde"))
                 .body("id", notNullValue());
     }
-    
+
     @Test
     public void testAddPersonException() {
         given()
                 .contentType("application/json")
-                .body(new PersonDTO("Klaus", "", "75634251"))
+                .body(new PersonDTO("Klaus", "", "75634251", "Landevejen 19", 8765, "Roskilde"))
                 .when()
                 .post("person")
                 .then()
@@ -191,11 +202,14 @@ public class PersonResourceTest {
                 .put("person/" + p3DTO.getId())
                 .then()
                 .body("fName", equalTo("Bente"))
-                .body("lName", equalTo("Svendsen"))
-                .body("phone", equalTo("76856412"))
+                .body("lName", equalTo(p3.getLastName()))
+                .body("phone", equalTo(p3.getPhone()))
+                .body("street", equalTo(p3.getAddress().getStreet()))
+                .body("zip", equalTo(p3.getAddress().getZip()))
+                .body("city", equalTo(p3.getAddress().getCity()))
                 .body("id", equalTo(p3DTO.getId()));
     }
-    
+
     @Test
     public void testEditPersonExceptionNotFound() {
         PersonDTO p3DTO = new PersonDTO(p3);
@@ -211,7 +225,7 @@ public class PersonResourceTest {
                 .statusCode(HttpStatus.NOT_FOUND_404.getStatusCode())
                 .body("message", equalTo("No person with provided id found"));
     }
-    
+
     @Test
     public void testEditPersonExceptionMissingInput() {
         PersonDTO p3DTO = new PersonDTO(p3);
@@ -249,7 +263,7 @@ public class PersonResourceTest {
 
         assertThat(personsDTO, iterableWithSize(2));
     }
-    
+
     @Test
     public void testDeletePersonException() {
         PersonDTO p1DTO = new PersonDTO(p1);

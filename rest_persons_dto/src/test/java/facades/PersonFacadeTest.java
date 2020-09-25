@@ -1,6 +1,7 @@
 package facades;
 
 import dto.PersonDTO;
+import entities.Address;
 import entities.Person;
 import exceptions.MissingInputException;
 import exceptions.PersonNotFoundException;
@@ -43,6 +44,7 @@ public class PersonFacadeTest {
         try {
             em.getTransaction().begin();
             em.createNamedQuery("Person.deleteAllRows").executeUpdate();
+            em.createNamedQuery("Address.deleteAllRows").executeUpdate();
             em.getTransaction().commit();
         } finally {
             em.close();
@@ -58,8 +60,13 @@ public class PersonFacadeTest {
             p1 = new Person("Jens", "Hansen", "12345678");
             p2 = new Person("Karl", "Bentsen", "98765432");
             p3 = new Person("Benny", "Nielsen", "13243546");
+            p1.setAddress(new Address("Hovedgaden 3", 1230, "Herlev"));
+            p2.setAddress(new Address("Bygade 56", 4560, "Værløse"));
+            p3.setAddress(new Address("Jernbanegade 6", 7890, "Skovlunde"));
+            
             em.getTransaction().begin();
             em.createNamedQuery("Person.deleteAllRows").executeUpdate();
+            em.createNamedQuery("Address.deleteAllRows").executeUpdate();
             em.persist(p1);
             em.persist(p2);
 
@@ -80,7 +87,7 @@ public class PersonFacadeTest {
     }
 
     @Test
-    public void testGetAllPersons() {
+    public void testGetAllPersons() {        
         assertEquals(2, facade.getAllPersons().size(), "Expect two persons in database");
     }
 
@@ -102,7 +109,7 @@ public class PersonFacadeTest {
 
     @Test
     public void testAddPerson() throws MissingInputException {
-        PersonDTO p3DTO = facade.addPerson(p3.getFirstName(), p3.getLastName(), p3.getPhone());
+        PersonDTO p3DTO = facade.addPerson(p3.getFirstName(), p3.getLastName(), p3.getPhone(), p3.getAddress().getStreet(), p3.getAddress().getZip(), p3.getAddress().getCity());
         assertEquals(3, facade.getAllPersons().size(), "Expect three persons in database now");
         assertEquals(p3DTO.getPhone(), p3.getPhone(), "Expect the same phone");
     }
@@ -110,7 +117,7 @@ public class PersonFacadeTest {
     @Test
     public void testAddPersonException() {
         try {
-            PersonDTO p3DTO = facade.addPerson("", "", p3.getPhone());
+            PersonDTO p3DTO = facade.addPerson("", "", p3.getPhone(), p3.getAddress().getStreet(), p3.getAddress().getZip(), p3.getAddress().getCity());
         } catch (MissingInputException ex) {
             assertEquals("First name and/or last name is missing", ex.getMessage());
         }
@@ -118,7 +125,7 @@ public class PersonFacadeTest {
 
     @Test
     public void testEditPerson() throws PersonNotFoundException, MissingInputException {
-        PersonDTO newData = new PersonDTO("Klaus", "Madsen", "67564536"); //json String
+        PersonDTO newData = new PersonDTO("Klaus", "Madsen", "67564536", "Bredgade 2", 8765, "Helsingør"); //json String
         newData.setId(p2.getId()); //id from url
         PersonDTO p2New = facade.editPerson(newData);
         assertEquals(newData.getlName(), p2New.getlName(), "Expect the same lastname");
@@ -129,7 +136,7 @@ public class PersonFacadeTest {
     @Test
     public void testEditPersonExceptionNotFound() throws MissingInputException {
         try {
-            PersonDTO newData = new PersonDTO("Klaus", "Madsen", "67564536"); //json String
+            PersonDTO newData = new PersonDTO("Klaus", "Madsen", "67564536", "Bredgade 2", 8765, "Helsingør"); //json String
             newData.setId(999); //id from url
             PersonDTO p2New = facade.editPerson(newData); //Expect the exceptions here
         } catch (PersonNotFoundException ex) {
@@ -140,7 +147,7 @@ public class PersonFacadeTest {
     @Test
     public void testEditPersonExceptionMissingInput() throws PersonNotFoundException {
         try {
-            PersonDTO newData = new PersonDTO("", "Madsen", "67564536"); //json String
+            PersonDTO newData = new PersonDTO("", "Madsen", "67564536", "Bredgade 2", 8765, "Helsingør"); //json String
             newData.setId(p2.getId()); //id from url
             PersonDTO p2New = facade.editPerson(newData); //Expect the exceptions here
         } catch (MissingInputException ex) {
